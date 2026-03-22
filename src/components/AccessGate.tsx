@@ -4,7 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Lock, UserPlus, LogIn } from 'lucide-react';
+import { Lock, UserPlus, LogIn, MessageCircle, Instagram, Star, FolderOpen } from 'lucide-react';
+
+const SOCIAL_LINKS = [
+  { href: 'https://chat.whatsapp.com/JOqFT8cIA25LpzgHJv8bCZ?mode=wwc', icon: MessageCircle, label: 'WhatsApp', color: 'text-green-500' },
+  { href: 'https://www.instagram.com/liloubooks____', icon: Instagram, label: 'Instagram', color: 'text-pink-500' },
+  { href: 'https://maps.app.goo.gl/mXKDagLgv4ALSkoV7?g_st=ic', icon: Star, label: 'Google Review', color: 'text-yellow-500' },
+  { href: 'https://drive.google.com/drive/folders/1oLb6Cd0Ze_ehM5UzYu0_Of_cMGnd1bEh?usp=sharing', icon: FolderOpen, label: 'Templates', color: 'text-blue-500' },
+];
 
 const ACCESS_CODE = 'lilou2024';
 
