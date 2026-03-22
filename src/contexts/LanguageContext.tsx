@@ -63,6 +63,7 @@ const translations: Record<string, Record<Language, string>> = {
   'tracking.clickPreview': { en: 'Click on the preview to find page', he: 'לחצי על התצוגה למציאת דף' },
   'tracking.clickTable': { en: 'Click a row to see position', he: 'לחצי על שורה לראות מיקום' },
   'tracking.currentPage': { en: 'Current Page', he: 'דף נוכחי' },
+  'preview.3dHint': { en: 'Drag to rotate • Scroll to zoom', he: 'גררי לסיבוב • גלילה לזום' },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
