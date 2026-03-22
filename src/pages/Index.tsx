@@ -396,13 +396,37 @@ const PatternGenerator: React.FC = () => {
         {/* Preview */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Eye className="h-5 w-5 text-primary" />
-              {t('preview.title')}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Eye className="h-5 w-5 text-primary" />
+                {t('preview.title')}
+              </CardTitle>
+              {result && (
+                <div className="flex gap-1 bg-muted rounded-md p-0.5">
+                  <button
+                    onClick={() => setPreviewMode('2d')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${previewMode === '2d' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {t('preview.2d')}
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode('3d')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${previewMode === '3d' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <Box className="h-3 w-3" />
+                    {t('preview.3d')}
+                  </button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {previewUrl ? (
+            {previewMode === '3d' && result ? (
+              <Suspense fallback={<div className="flex items-center justify-center h-[400px] text-muted-foreground text-sm">Loading 3D...</div>}>
+                <Book3DPreview result={result} />
+                <p className="mt-2 text-center text-xs text-muted-foreground">{t('preview.3dHint')}</p>
+              </Suspense>
+            ) : previewUrl ? (
               <div className="relative bg-muted/30 rounded-lg p-4 overflow-hidden">
                 {trackedPage !== null && result && (
                   <div className="mb-3 flex items-center justify-center gap-2 text-sm">
@@ -420,10 +444,8 @@ const PatternGenerator: React.FC = () => {
                     const page = result.pages[Math.max(0, Math.min(pageIdx, result.pages.length - 1))];
                     if (page) {
                       setTrackedPage(page.pageNumber);
-                      // Navigate table to correct page
                       const tablePageIdx = Math.floor(result.pages.indexOf(page) / ROWS_PER_PAGE);
                       setCurrentTablePage(tablePageIdx);
-                      // Scroll to row after render
                       setTimeout(() => {
                         tableRowRefs.current[page.pageNumber]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }, 100);
@@ -436,7 +458,6 @@ const PatternGenerator: React.FC = () => {
                       className="max-w-full h-auto border border-border rounded shadow-sm"
                       style={{ imageRendering: 'pixelated', maxHeight: '300px' }}
                     />
-                    {/* Tracking indicator line */}
                     {trackedPage !== null && result && (() => {
                       const idx = result.pages.findIndex(p => p.pageNumber === trackedPage);
                       if (idx < 0) return null;
