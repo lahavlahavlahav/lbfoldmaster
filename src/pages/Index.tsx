@@ -86,6 +86,7 @@ const PatternGenerator: React.FC = () => {
 
   // Tracking
   const [trackedPage, setTrackedPage] = useState<number | null>(null);
+  const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d');
 
   // Results
   const [result, setResult] = useState<PatternResult | null>(null);
