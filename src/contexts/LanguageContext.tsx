@@ -59,6 +59,10 @@ const translations: Record<string, Record<Language, string>> = {
   'btn.exportPdf': { en: 'Export PDF', he: 'ייצוא PDF' },
   'btn.exportCsv': { en: 'Export CSV', he: 'ייצוא CSV' },
   'results.totalPages': { en: 'Total pages with folds', he: 'סה"כ דפים עם קיפולים' },
+  'tracking.title': { en: 'Pattern Tracker', he: 'מעקב תבנית' },
+  'tracking.clickPreview': { en: 'Click on the preview to find page', he: 'לחצי על התצוגה למציאת דף' },
+  'tracking.clickTable': { en: 'Click a row to see position', he: 'לחצי על שורה לראות מיקום' },
+  'tracking.currentPage': { en: 'Current Page', he: 'דף נוכחי' },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);

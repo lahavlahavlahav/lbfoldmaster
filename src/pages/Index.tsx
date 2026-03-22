@@ -22,7 +22,7 @@ import {
 import { exportPatternToPdf, exportPatternToCsv } from '@/lib/pdf-export';
 import {
   BookOpen, Type, Image, Scissors, Download, FileSpreadsheet, Wand2, Eye,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MapPin,
 } from 'lucide-react';
 
 const FONTS = [
@@ -82,6 +82,9 @@ const PatternGenerator: React.FC = () => {
   const [technique, setTechnique] = useState<FoldTechnique>('mmf');
   const [shadowDepth, setShadowDepth] = useState(3);
 
+  // Tracking
+  const [trackedPage, setTrackedPage] = useState<number | null>(null);
+
   // Results
   const [result, setResult] = useState<PatternResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -89,6 +92,8 @@ const PatternGenerator: React.FC = () => {
   const ROWS_PER_PAGE = 20;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+  const tableRowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
 
   // Live preview
   useEffect(() => {
@@ -396,13 +401,54 @@ const PatternGenerator: React.FC = () => {
           <CardContent>
             {previewUrl ? (
               <div className="relative bg-muted/30 rounded-lg p-4 overflow-hidden">
+                {trackedPage !== null && result && (
+                  <div className="mb-3 flex items-center justify-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-destructive" />
+                    <span className="font-semibold text-foreground">{t('tracking.currentPage')}: {trackedPage}</span>
+                  </div>
+                )}
                 <div className="flex justify-center">
-                  <img
-                    src={result?.canvasDataUrl || previewUrl}
-                    alt="Pattern preview"
-                    className="max-w-full h-auto border border-border rounded shadow-sm"
-                    style={{ imageRendering: 'pixelated', maxHeight: '300px' }}
-                  />
+                  <div className="relative inline-block cursor-crosshair" onClick={(e) => {
+                    if (!result || !previewImgRef.current) return;
+                    const rect = previewImgRef.current.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const ratio = clickX / rect.width;
+                    const pageIdx = Math.floor(ratio * result.pages.length);
+                    const page = result.pages[Math.max(0, Math.min(pageIdx, result.pages.length - 1))];
+                    if (page) {
+                      setTrackedPage(page.pageNumber);
+                      // Navigate table to correct page
+                      const tablePageIdx = Math.floor(result.pages.indexOf(page) / ROWS_PER_PAGE);
+                      setCurrentTablePage(tablePageIdx);
+                      // Scroll to row after render
+                      setTimeout(() => {
+                        tableRowRefs.current[page.pageNumber]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }
+                  }}>
+                    <img
+                      ref={previewImgRef}
+                      src={result?.canvasDataUrl || previewUrl}
+                      alt="Pattern preview"
+                      className="max-w-full h-auto border border-border rounded shadow-sm"
+                      style={{ imageRendering: 'pixelated', maxHeight: '300px' }}
+                    />
+                    {/* Tracking indicator line */}
+                    {trackedPage !== null && result && (() => {
+                      const idx = result.pages.findIndex(p => p.pageNumber === trackedPage);
+                      if (idx < 0) return null;
+                      const pct = ((idx + 0.5) / result.pages.length) * 100;
+                      return (
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-destructive pointer-events-none"
+                          style={{ left: `${pct}%` }}
+                        >
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-destructive border-2 border-background" />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-destructive border-2 border-background" />
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
                 {result && (
                   <div className="mt-3 flex items-center justify-center gap-4 text-sm text-muted-foreground">
@@ -410,6 +456,9 @@ const PatternGenerator: React.FC = () => {
                     <span>|</span>
                     <span>{t('fold.title')}: <strong className="text-foreground">{technique.toUpperCase()}</strong></span>
                   </div>
+                )}
+                {result && (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">{t('tracking.clickPreview')}</p>
                 )}
               </div>
             ) : (
@@ -459,9 +508,22 @@ const PatternGenerator: React.FC = () => {
                     {currentRows.map((page, idx) => (
                       <tr
                         key={page.pageNumber}
-                        className={`border-b border-border/50 ${idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}`}
+                        ref={el => { tableRowRefs.current[page.pageNumber] = el; }}
+                        onClick={() => {
+                          setTrackedPage(page.pageNumber);
+                          // Scroll preview into view
+                          previewImgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        className={`border-b border-border/50 cursor-pointer transition-colors
+                          ${trackedPage === page.pageNumber
+                            ? 'bg-primary/20 ring-1 ring-primary'
+                            : idx % 2 === 0 ? 'bg-card hover:bg-muted/40' : 'bg-muted/20 hover:bg-muted/40'
+                          }`}
                       >
-                        <td className="py-2 px-3 font-medium">{page.pageNumber}</td>
+                        <td className="py-2 px-3 font-medium">
+                          {trackedPage === page.pageNumber && <MapPin className="inline h-3.5 w-3.5 text-destructive me-1" />}
+                          {page.pageNumber}
+                        </td>
                         {(() => {
                           const maxMarks = Math.max(...result.pages.map(p => p.marks.length), 2);
                           return Array.from({ length: maxMarks }, (_, i) => {
