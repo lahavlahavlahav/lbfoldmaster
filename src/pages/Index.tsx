@@ -508,9 +508,22 @@ const PatternGenerator: React.FC = () => {
                     {currentRows.map((page, idx) => (
                       <tr
                         key={page.pageNumber}
-                        className={`border-b border-border/50 ${idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}`}
+                        ref={el => { tableRowRefs.current[page.pageNumber] = el; }}
+                        onClick={() => {
+                          setTrackedPage(page.pageNumber);
+                          // Scroll preview into view
+                          previewImgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        className={`border-b border-border/50 cursor-pointer transition-colors
+                          ${trackedPage === page.pageNumber
+                            ? 'bg-primary/20 ring-1 ring-primary'
+                            : idx % 2 === 0 ? 'bg-card hover:bg-muted/40' : 'bg-muted/20 hover:bg-muted/40'
+                          }`}
                       >
-                        <td className="py-2 px-3 font-medium">{page.pageNumber}</td>
+                        <td className="py-2 px-3 font-medium">
+                          {trackedPage === page.pageNumber && <MapPin className="inline h-3.5 w-3.5 text-destructive me-1" />}
+                          {page.pageNumber}
+                        </td>
                         {(() => {
                           const maxMarks = Math.max(...result.pages.map(p => p.marks.length), 2);
                           return Array.from({ length: maxMarks }, (_, i) => {
