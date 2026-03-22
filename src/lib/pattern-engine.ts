@@ -221,17 +221,28 @@ function generateInverted(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
-      // Inverted: fold the OUTSIDE areas, leave design area unfolded
-      pages.push({
-        pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: 'fold' },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: 'fold' },
-        ],
-        action: 'fold-inverted',
-      });
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
+      // Inverted: fold the OUTSIDE areas (gaps between segments + top/bottom margins)
+      const marks: Mark[] = [];
+      // Fold from top margin to first segment
+      marks.push(
+        { positionCm: book.topMarginCm, type: 'fold' },
+        { positionCm: pixelToCm(segments[0].top, canvas.height, book), type: 'fold' },
+      );
+      // Fold gaps between segments
+      for (let i = 0; i < segments.length - 1; i++) {
+        marks.push(
+          { positionCm: pixelToCm(segments[i].bottom, canvas.height, book), type: 'fold' },
+          { positionCm: pixelToCm(segments[i + 1].top, canvas.height, book), type: 'fold' },
+        );
+      }
+      // Fold from last segment to bottom margin
+      marks.push(
+        { positionCm: pixelToCm(segments[segments.length - 1].bottom, canvas.height, book), type: 'fold' },
+        { positionCm: book.heightCm - book.bottomMarginCm, type: 'fold' },
+      );
+      pages.push({ pageNumber: x + 1, marks, action: 'fold-inverted' });
     } else {
       // No design on this page — fold entire page
       pages.push({
