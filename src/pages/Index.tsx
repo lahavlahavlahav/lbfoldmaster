@@ -82,6 +82,9 @@ const PatternGenerator: React.FC = () => {
   const [technique, setTechnique] = useState<FoldTechnique>('mmf');
   const [shadowDepth, setShadowDepth] = useState(3);
 
+  // Tracking
+  const [trackedPage, setTrackedPage] = useState<number | null>(null);
+
   // Results
   const [result, setResult] = useState<PatternResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -89,6 +92,8 @@ const PatternGenerator: React.FC = () => {
   const ROWS_PER_PAGE = 20;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+  const tableRowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
 
   // Live preview
   useEffect(() => {
