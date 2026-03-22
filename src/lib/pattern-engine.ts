@@ -263,12 +263,11 @@ function generateShadow(
   config: TechniqueConfig
 ): PagePattern[] {
   const shadowDepth = config.shadowDepth ?? 3;
-  const basePags = generateMMF(ctx, canvas, book);
+  const basePages = generateMMF(ctx, canvas, book);
 
-  // Add shadow offset: duplicate marks shifted by shadowDepth pages
   const shadowPages: PagePattern[] = [];
   const pageMap = new Map<number, PagePattern>();
-  basePags.forEach(p => pageMap.set(p.pageNumber, p));
+  basePages.forEach(p => pageMap.set(p.pageNumber, p));
 
   for (let x = 0; x < canvas.width; x++) {
     const pageNum = x + 1;
@@ -281,12 +280,10 @@ function generateShadow(
     }
     if (shadowSource) {
       shadowSource.marks.forEach(m => {
-        // Shadow is a shallower fold
         marks.push({ positionCm: m.positionCm, type: 'fold', depth: 'shallow' });
       });
     }
     if (marks.length > 0) {
-      // Sort marks by position
       marks.sort((a, b) => a.positionCm - b.positionCm);
       shadowPages.push({ pageNumber: pageNum, marks, action: 'fold-shadow' });
     }
