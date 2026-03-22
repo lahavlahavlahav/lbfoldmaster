@@ -18,8 +18,7 @@ export interface DesignConfig {
 
 export type FoldTechnique =
   | 'mmf' | 'mmcf' | 'inverted' | 'shadow'
-  | 'two-tone' | 'three-tone' | 'multilayer'
-  | 'multiline' | 'embossed' | 'combi';
+  | 'multilayer' | 'multiline' | 'embossed' | 'combi';
 
 export interface Mark {
   positionCm: number;
