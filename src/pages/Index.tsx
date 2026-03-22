@@ -40,8 +40,6 @@ const TECHNIQUES: { value: FoldTechnique; labelKey: string; icon: string }[] = [
   { value: 'mmcf', labelKey: 'fold.mmcf', icon: '✂️' },
   { value: 'inverted', labelKey: 'fold.inverted', icon: '🔄' },
   { value: 'shadow', labelKey: 'fold.shadow', icon: '🌗' },
-  { value: 'two-tone', labelKey: 'fold.twoTone', icon: '🎨' },
-  { value: 'three-tone', labelKey: 'fold.threeTone', icon: '🌈' },
   { value: 'multilayer', labelKey: 'fold.multilayer', icon: '📚' },
   { value: 'multiline', labelKey: 'fold.multiline', icon: '📝' },
   { value: 'embossed', labelKey: 'fold.embossed', icon: '💎' },

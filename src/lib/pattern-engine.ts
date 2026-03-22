@@ -379,12 +379,6 @@ export function generatePattern(
     case 'shadow':
       pages = generateShadow(ctx, canvas, book, techConfig);
       break;
-    case 'two-tone':
-      pages = generateTwoTone(ctx, canvas, book);
-      break;
-    case 'three-tone':
-      pages = generateThreeTone(ctx, canvas, book);
-      break;
     case 'multilayer':
       pages = generateMultilayer(ctx, canvas, book);
       break;
