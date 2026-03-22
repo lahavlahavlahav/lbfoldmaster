@@ -175,14 +175,18 @@ function generateMMF(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
+      const marks: Mark[] = [];
+      segments.forEach(seg => {
+        marks.push(
+          { positionCm: pixelToCm(seg.top, canvas.height, book), type: 'fold' },
+          { positionCm: pixelToCm(seg.bottom, canvas.height, book), type: 'fold' },
+        );
+      });
       pages.push({
         pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: 'fold' },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: 'fold' },
-        ],
+        marks,
         action: 'fold',
       });
     }
