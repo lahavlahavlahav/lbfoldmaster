@@ -401,13 +401,54 @@ const PatternGenerator: React.FC = () => {
           <CardContent>
             {previewUrl ? (
               <div className="relative bg-muted/30 rounded-lg p-4 overflow-hidden">
+                {trackedPage !== null && result && (
+                  <div className="mb-3 flex items-center justify-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-destructive" />
+                    <span className="font-semibold text-foreground">{t('tracking.currentPage')}: {trackedPage}</span>
+                  </div>
+                )}
                 <div className="flex justify-center">
-                  <img
-                    src={result?.canvasDataUrl || previewUrl}
-                    alt="Pattern preview"
-                    className="max-w-full h-auto border border-border rounded shadow-sm"
-                    style={{ imageRendering: 'pixelated', maxHeight: '300px' }}
-                  />
+                  <div className="relative inline-block cursor-crosshair" onClick={(e) => {
+                    if (!result || !previewImgRef.current) return;
+                    const rect = previewImgRef.current.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const ratio = clickX / rect.width;
+                    const pageIdx = Math.floor(ratio * result.pages.length);
+                    const page = result.pages[Math.max(0, Math.min(pageIdx, result.pages.length - 1))];
+                    if (page) {
+                      setTrackedPage(page.pageNumber);
+                      // Navigate table to correct page
+                      const tablePageIdx = Math.floor(result.pages.indexOf(page) / ROWS_PER_PAGE);
+                      setCurrentTablePage(tablePageIdx);
+                      // Scroll to row after render
+                      setTimeout(() => {
+                        tableRowRefs.current[page.pageNumber]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }
+                  }}>
+                    <img
+                      ref={previewImgRef}
+                      src={result?.canvasDataUrl || previewUrl}
+                      alt="Pattern preview"
+                      className="max-w-full h-auto border border-border rounded shadow-sm"
+                      style={{ imageRendering: 'pixelated', maxHeight: '300px' }}
+                    />
+                    {/* Tracking indicator line */}
+                    {trackedPage !== null && result && (() => {
+                      const idx = result.pages.findIndex(p => p.pageNumber === trackedPage);
+                      if (idx < 0) return null;
+                      const pct = ((idx + 0.5) / result.pages.length) * 100;
+                      return (
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-destructive pointer-events-none"
+                          style={{ left: `${pct}%` }}
+                        >
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-destructive border-2 border-background" />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-destructive border-2 border-background" />
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
                 {result && (
                   <div className="mt-3 flex items-center justify-center gap-4 text-sm text-muted-foreground">
@@ -415,6 +456,9 @@ const PatternGenerator: React.FC = () => {
                     <span>|</span>
                     <span>{t('fold.title')}: <strong className="text-foreground">{technique.toUpperCase()}</strong></span>
                   </div>
+                )}
+                {result && (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">{t('tracking.clickPreview')}</p>
                 )}
               </div>
             ) : (
