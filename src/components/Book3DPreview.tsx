@@ -1,6 +1,6 @@
-import React, { useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import React, { useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { PatternResult } from '@/lib/pattern-engine';
 
@@ -8,173 +8,148 @@ interface Book3DPreviewProps {
   result: PatternResult;
 }
 
-const BOOK_WIDTH = 3;
-const SPINE_THICKNESS = 0.8;
+const BOOK_WIDTH = 2.5;
 
-function FoldedPages({ result }: { result: PatternResult }) {
-  const groupRef = useRef<THREE.Group>(null);
-  
+function BookModel({ result }: { result: PatternResult }) {
+  const groupRef = useRef<THREE.Group>(null!);
+
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.15;
+      groupRef.current.rotation.y += delta * 0.12;
     }
   });
 
   const { bookConfig, pages } = result;
   const totalPages = bookConfig.numberOfPages;
   const usableHeight = bookConfig.heightCm - bookConfig.topMarginCm - bookConfig.bottomMarginCm;
-  const pageHeight = bookConfig.heightCm / 10; // convert to 3D units
-  
-  // Spread angle for the open book fan effect
-  const totalAngle = Math.PI * 0.85; // ~153 degrees spread
+  const pageHeight = bookConfig.heightCm / 10;
+
+  const totalAngle = Math.PI * 0.75;
   const startAngle = -totalAngle / 2;
 
-  // Build page meshes
-  const pageGeometries = useMemo(() => {
-    const geos: Array<{
-      pageNum: number;
-      hasFold: boolean;
-      foldDepths: number[]; // normalized 0-1 positions of folds
-      angleY: number;
-    }> = [];
-
-    // Create a map for quick lookup
+  // Build a single merged geometry for performance
+  const mergedGeo = useMemo(() => {
     const pageMap = new Map(pages.map(p => [p.pageNumber, p]));
+    // Show max ~80 pages for performance
+    const step = Math.max(1, Math.floor(totalPages / 80));
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const colors: number[] = [];
+    const indices: number[] = [];
+    let vertOffset = 0;
 
-    // Sample pages (show ~120 pages max for performance)
-    const step = Math.max(1, Math.floor(totalPages / 120));
-    
+    const segments = 24;
+
     for (let i = 0; i < totalPages; i += step) {
       const pageNum = i + 1;
-      const ratio = i / (totalPages - 1);
+      const ratio = totalPages > 1 ? i / (totalPages - 1) : 0.5;
       const angleY = startAngle + ratio * totalAngle;
-      
+
+      const cosA = Math.cos(angleY);
+      const sinA = Math.sin(angleY);
+
       const pattern = pageMap.get(pageNum);
-      const foldDepths: number[] = [];
-      
+
+      // Build fold regions for this page
+      const foldRegions: Array<{ topNorm: number; bottomNorm: number }> = [];
       if (pattern && pattern.marks.length >= 2) {
-        // Convert mark positions to normalized fold depths (0 = no fold, 1 = max fold)
         for (let m = 0; m < pattern.marks.length; m += 2) {
           if (m + 1 < pattern.marks.length) {
             const top = pattern.marks[m].positionCm;
             const bottom = pattern.marks[m + 1].positionCm;
-            const centerNorm = ((top + bottom) / 2 - bookConfig.topMarginCm) / usableHeight;
-            const widthNorm = (bottom - top) / usableHeight;
-            foldDepths.push(centerNorm, widthNorm);
+            foldRegions.push({
+              topNorm: (top - bookConfig.topMarginCm) / usableHeight,
+              bottomNorm: (bottom - bookConfig.topMarginCm) / usableHeight,
+            });
           }
         }
       }
 
-      geos.push({
-        pageNum,
-        hasFold: foldDepths.length > 0,
-        foldDepths,
-        angleY,
-      });
-    }
-    return geos;
-  }, [pages, totalPages, startAngle, totalAngle, bookConfig, usableHeight]);
+      const hasFold = foldRegions.length > 0;
 
-  return (
-    <group ref={groupRef} position={[0, 0, 0]}>
-      {/* Book spine */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[SPINE_THICKNESS * 0.3, pageHeight, SPINE_THICKNESS]} />
-        <meshStandardMaterial color="#5C3A1E" roughness={0.8} />
-      </mesh>
+      // Create a strip of quads for this page
+      for (let s = 0; s <= segments; s++) {
+        const yNorm = s / segments; // 0 to 1
+        const y = (yNorm - 0.5) * pageHeight;
 
-      {/* Pages */}
-      {pageGeometries.map((pg) => (
-        <FoldedPage
-          key={pg.pageNum}
-          angleY={pg.angleY}
-          pageHeight={pageHeight}
-          hasFold={pg.hasFold}
-          foldDepths={pg.foldDepths}
-          bookConfig={result.bookConfig}
-          usableHeight={usableHeight}
-        />
-      ))}
-    </group>
-  );
-}
+        // Calculate fold amount at this y position
+        let foldAmount = 0;
+        for (const region of foldRegions) {
+          if (yNorm >= region.topNorm && yNorm <= region.bottomNorm) {
+            const center = (region.topNorm + region.bottomNorm) / 2;
+            const half = (region.bottomNorm - region.topNorm) / 2;
+            if (half > 0) {
+              const dist = Math.abs(yNorm - center) / half;
+              foldAmount = Math.max(foldAmount, Math.cos(dist * Math.PI / 2) * 0.55);
+            }
+          }
+        }
 
-function FoldedPage({
-  angleY,
-  pageHeight,
-  hasFold,
-  foldDepths,
-  bookConfig,
-  usableHeight,
-}: {
-  angleY: number;
-  pageHeight: number;
-  hasFold: boolean;
-  foldDepths: number[];
-  bookConfig: PatternResult['bookConfig'];
-  usableHeight: number;
-}) {
-  const mesh = useMemo(() => {
-    if (!hasFold || foldDepths.length === 0) {
-      // Flat page - simple plane
-      const geo = new THREE.PlaneGeometry(BOOK_WIDTH, pageHeight, 1, 1);
-      return { geometry: geo, isFolded: false };
-    }
+        // Page extends from spine outward
+        const localX = BOOK_WIDTH * (1 - foldAmount * 0.65);
+        const localZ = foldAmount * 0.12;
 
-    // Create a folded page shape using a custom geometry
-    const segments = 32;
-    const geo = new THREE.PlaneGeometry(BOOK_WIDTH, pageHeight, 1, segments);
-    const posAttr = geo.attributes.position;
-    
-    for (let i = 0; i < posAttr.count; i++) {
-      const y = posAttr.getY(i); // -pageHeight/2 to pageHeight/2
-      const yNorm = (y + pageHeight / 2) / pageHeight; // 0 to 1 (bottom to top)
-      
-      // Convert to cm position in the book
-      const cmPos = bookConfig.topMarginCm + yNorm * usableHeight;
-      
-      // Check if this y position falls within any fold region
-      let foldAmount = 0;
-      for (let f = 0; f < foldDepths.length; f += 2) {
-        const centerNorm = foldDepths[f];
-        const widthNorm = foldDepths[f + 1];
-        const foldTopCm = bookConfig.topMarginCm + (centerNorm - widthNorm / 2) * usableHeight;
-        const foldBottomCm = bookConfig.topMarginCm + (centerNorm + widthNorm / 2) * usableHeight;
-        
-        if (cmPos >= foldTopCm && cmPos <= foldBottomCm) {
-          // Inside fold region - compute fold depth using smooth curve
-          const foldCenter = (foldTopCm + foldBottomCm) / 2;
-          const foldHalf = (foldBottomCm - foldTopCm) / 2;
-          const dist = Math.abs(cmPos - foldCenter) / foldHalf;
-          foldAmount = Math.max(foldAmount, Math.cos(dist * Math.PI / 2) * 0.6);
+        // Two vertices per row: at spine (x=0) and at edge
+        // Spine vertex
+        const sx = 0, sz = 0;
+        const wx = sx * cosA - sz * sinA;
+        const wz = sx * sinA + sz * cosA;
+        positions.push(wx, y, wz);
+        normals.push(-sinA, 0, cosA);
+        // Color: spine area is slightly darker
+        colors.push(0.95, 0.93, 0.88);
+
+        // Edge vertex
+        const ex = localX, ez = localZ;
+        const ewx = ex * cosA - ez * sinA;
+        const ewz = ex * sinA + ez * cosA;
+        positions.push(ewx, y, ewz);
+        normals.push(-sinA, 0, cosA);
+        // Folded pages get a warmer tint
+        if (hasFold && foldAmount > 0) {
+          colors.push(1.0, 0.97, 0.90);
+        } else {
+          colors.push(1.0, 0.99, 0.96);
         }
       }
-      
-      // Push the vertex inward (along x) to create fold effect
-      if (foldAmount > 0) {
-        const x = posAttr.getX(i);
-        // Fold toward the spine (x toward 0)
-        const foldedX = x * (1 - foldAmount * 0.7);
-        posAttr.setX(i, foldedX);
-        // Slight z offset for depth
-        posAttr.setZ(i, posAttr.getZ(i) + foldAmount * 0.15);
+
+      // Build triangle indices for this page
+      for (let s = 0; s < segments; s++) {
+        const base = vertOffset + s * 2;
+        // Two triangles per quad
+        indices.push(base, base + 1, base + 3);
+        indices.push(base, base + 3, base + 2);
       }
+
+      vertOffset += (segments + 1) * 2;
     }
-    
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setIndex(indices);
     geo.computeVertexNormals();
-    return { geometry: geo, isFolded: true };
-  }, [hasFold, foldDepths, pageHeight, bookConfig, usableHeight]);
+    return geo;
+  }, [pages, totalPages, startAngle, totalAngle, bookConfig, usableHeight, pageHeight]);
+
+  // Spine geometry
+  const spineHeight = pageHeight;
 
   return (
-    <group rotation={[0, angleY, 0]}>
-      <mesh
-        position={[BOOK_WIDTH / 2, 0, 0]}
-        geometry={mesh.geometry}
-      >
+    <group ref={groupRef}>
+      {/* Spine */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.15, spineHeight, 0.4]} />
+        <meshStandardMaterial color="#6B3A2A" roughness={0.9} />
+      </mesh>
+
+      {/* All pages as one mesh */}
+      <mesh geometry={mergedGeo}>
         <meshStandardMaterial
-          color={mesh.isFolded ? '#FFF8E7' : '#FFFDF5'}
+          vertexColors
           side={THREE.DoubleSide}
-          roughness={0.7}
+          roughness={0.75}
           metalness={0}
         />
       </mesh>
@@ -183,23 +158,34 @@ function FoldedPage({
 }
 
 const Book3DPreview: React.FC<Book3DPreviewProps> = ({ result }) => {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div className="w-full h-[350px] bg-muted/20 rounded-lg border border-border flex items-center justify-center text-muted-foreground text-sm">
+        3D preview unavailable — try refreshing
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-[400px] bg-muted/20 rounded-lg border border-border overflow-hidden">
+    <div className="w-full h-[350px] bg-gradient-to-b from-muted/10 to-muted/30 rounded-lg border border-border overflow-hidden">
       <Canvas
-        camera={{ position: [0, 3, 6], fov: 45 }}
-        gl={{ antialias: true }}
+        camera={{ position: [0, 2.5, 5], fov: 40 }}
+        gl={{ antialias: true, powerPreference: 'low-power' }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', () => setError(true));
+        }}
       >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-        <directionalLight position={[-3, 2, -2]} intensity={0.3} />
-        <FoldedPages result={result} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[4, 5, 4]} intensity={0.9} />
+        <directionalLight position={[-3, 2, -3]} intensity={0.3} />
+        <BookModel result={result} />
         <OrbitControls
           enablePan={false}
-          minDistance={3}
-          maxDistance={12}
-          autoRotate={false}
+          minDistance={2.5}
+          maxDistance={10}
         />
-        <Environment preset="studio" />
       </Canvas>
     </div>
   );
