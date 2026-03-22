@@ -23,7 +23,7 @@ import {
 } from '@/lib/pattern-engine';
 import { exportPatternToPdf, exportPatternToCsv } from '@/lib/pdf-export';
 import {
-  BookOpen, Type, Image, Scissors, Download, FileSpreadsheet, Wand2, Eye,
+  BookOpen, Type, Image, Scissors, Download, FileSpreadsheet, Wand2, Eye, Box,
   ChevronLeft, ChevronRight, MapPin,
 } from 'lucide-react';
 
