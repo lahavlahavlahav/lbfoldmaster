@@ -18,8 +18,7 @@ export interface DesignConfig {
 
 export type FoldTechnique =
   | 'mmf' | 'mmcf' | 'inverted' | 'shadow'
-  | 'two-tone' | 'three-tone' | 'multilayer'
-  | 'multiline' | 'embossed' | 'combi';
+  | 'multilayer' | 'multiline' | 'embossed' | 'combi';
 
 export interface Mark {
   positionCm: number;
@@ -280,77 +279,6 @@ function generateShadow(
   return shadowPages;
 }
 
-function generateTwoTone(
-  ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, book: BookConfig
-): PagePattern[] {
-  const pages: PagePattern[] = [];
-  for (let x = 0; x < canvas.width; x++) {
-    const brightness = getColumnPixels(ctx, x, canvas.height);
-    const deepEdges = findEdges(brightness, 85); // Very dark pixels
-    const shallowEdges = findEdges(brightness, 170); // Medium pixels
-
-    const marks: Mark[] = [];
-    if (deepEdges) {
-      marks.push(
-        { positionCm: pixelToCm(deepEdges.top, canvas.height, book), type: 'fold', depth: 'deep' },
-        { positionCm: pixelToCm(deepEdges.bottom, canvas.height, book), type: 'fold', depth: 'deep' },
-      );
-    }
-    if (shallowEdges && (!deepEdges ||
-      shallowEdges.top !== deepEdges.top || shallowEdges.bottom !== deepEdges.bottom)) {
-      marks.push(
-        { positionCm: pixelToCm(shallowEdges.top, canvas.height, book), type: 'fold', depth: 'shallow' },
-        { positionCm: pixelToCm(shallowEdges.bottom, canvas.height, book), type: 'fold', depth: 'shallow' },
-      );
-    }
-    if (marks.length > 0) {
-      marks.sort((a, b) => a.positionCm - b.positionCm);
-      pages.push({ pageNumber: x + 1, marks, action: 'fold-two-tone' });
-    }
-  }
-  return pages;
-}
-
-function generateThreeTone(
-  ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, book: BookConfig
-): PagePattern[] {
-  const pages: PagePattern[] = [];
-  for (let x = 0; x < canvas.width; x++) {
-    const brightness = getColumnPixels(ctx, x, canvas.height);
-    const deepEdges = findEdges(brightness, 64);
-    const medEdges = findEdges(brightness, 128);
-    const lightEdges = findEdges(brightness, 192);
-
-    const marks: Mark[] = [];
-    if (deepEdges) {
-      marks.push(
-        { positionCm: pixelToCm(deepEdges.top, canvas.height, book), type: 'fold', depth: 'deep' },
-        { positionCm: pixelToCm(deepEdges.bottom, canvas.height, book), type: 'fold', depth: 'deep' },
-      );
-    }
-    if (medEdges) {
-      marks.push(
-        { positionCm: pixelToCm(medEdges.top, canvas.height, book), type: 'fold', depth: 'medium' },
-        { positionCm: pixelToCm(medEdges.bottom, canvas.height, book), type: 'fold', depth: 'medium' },
-      );
-    }
-    if (lightEdges) {
-      marks.push(
-        { positionCm: pixelToCm(lightEdges.top, canvas.height, book), type: 'fold', depth: 'shallow' },
-        { positionCm: pixelToCm(lightEdges.bottom, canvas.height, book), type: 'fold', depth: 'shallow' },
-      );
-    }
-    if (marks.length > 0) {
-      // Deduplicate by position
-      const unique = marks.filter((m, i, arr) =>
-        arr.findIndex(o => o.positionCm === m.positionCm && o.depth === m.depth) === i
-      );
-      unique.sort((a, b) => a.positionCm - b.positionCm);
-      pages.push({ pageNumber: x + 1, marks: unique, action: 'fold-three-tone' });
-    }
-  }
-  return pages;
-}
 
 function generateMultilayer(
   ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, book: BookConfig
@@ -450,12 +378,6 @@ export function generatePattern(
       break;
     case 'shadow':
       pages = generateShadow(ctx, canvas, book, techConfig);
-      break;
-    case 'two-tone':
-      pages = generateTwoTone(ctx, canvas, book);
-      break;
-    case 'three-tone':
-      pages = generateThreeTone(ctx, canvas, book);
       break;
     case 'multilayer':
       pages = generateMultilayer(ctx, canvas, book);

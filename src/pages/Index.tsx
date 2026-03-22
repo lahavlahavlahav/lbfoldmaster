@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
+import AccessGate from '@/components/AccessGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -40,8 +41,6 @@ const TECHNIQUES: { value: FoldTechnique; labelKey: string; icon: string }[] = [
   { value: 'mmcf', labelKey: 'fold.mmcf', icon: '✂️' },
   { value: 'inverted', labelKey: 'fold.inverted', icon: '🔄' },
   { value: 'shadow', labelKey: 'fold.shadow', icon: '🌗' },
-  { value: 'two-tone', labelKey: 'fold.twoTone', icon: '🎨' },
-  { value: 'three-tone', labelKey: 'fold.threeTone', icon: '🌈' },
   { value: 'multilayer', labelKey: 'fold.multilayer', icon: '📚' },
   { value: 'multiline', labelKey: 'fold.multiline', icon: '📝' },
   { value: 'embossed', labelKey: 'fold.embossed', icon: '💎' },
@@ -49,6 +48,18 @@ const TECHNIQUES: { value: FoldTechnique; labelKey: string; icon: string }[] = [
 ];
 
 const Index: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('lilou_auth') === 'true';
+  });
+
+  if (!isAuthenticated) {
+    return <AccessGate onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
+
+  return <PatternGenerator />;
+};
+
+const PatternGenerator: React.FC = () => {
   const { t, lang } = useLanguage();
 
   // Book settings

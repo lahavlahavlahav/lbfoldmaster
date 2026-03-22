@@ -32,8 +32,6 @@ const translations: Record<string, Record<Language, string>> = {
   'fold.mmcf': { en: 'Cut & Fold', he: 'חיתוך וקיפול' },
   'fold.inverted': { en: 'Inverted', he: 'הפוך' },
   'fold.shadow': { en: 'Shadow', he: 'צל' },
-  'fold.twoTone': { en: 'Two-Tone', he: 'דו-גוני' },
-  'fold.threeTone': { en: 'Three-Tone', he: 'תלת-גוני' },
   'fold.multilayer': { en: 'Multilayer', he: 'רב-שכבתי' },
   'fold.multiline': { en: 'Multiline', he: 'רב-שורתי' },
   'fold.embossed': { en: 'Embossed', he: 'בליטה' },
