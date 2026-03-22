@@ -4,7 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Lock, UserPlus, LogIn } from 'lucide-react';
+import { Lock, UserPlus, LogIn, MessageCircle, Instagram, Star, FolderOpen } from 'lucide-react';
+
+const SOCIAL_LINKS = [
+  { href: 'https://chat.whatsapp.com/JOqFT8cIA25LpzgHJv8bCZ?mode=wwc', icon: MessageCircle, label: 'WhatsApp', color: 'text-green-500' },
+  { href: 'https://www.instagram.com/liloubooks____', icon: Instagram, label: 'Instagram', color: 'text-pink-500' },
+  { href: 'https://maps.app.goo.gl/mXKDagLgv4ALSkoV7?g_st=ic', icon: Star, label: 'Google Review', color: 'text-yellow-500' },
+  { href: 'https://drive.google.com/drive/folders/1oLb6Cd0Ze_ehM5UzYu0_Of_cMGnd1bEh?usp=sharing', icon: FolderOpen, label: 'Templates', color: 'text-blue-500' },
+];
 
 const ACCESS_CODE = 'lilou2024';
 
@@ -52,6 +59,20 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticated }) => {
           <p className="text-muted-foreground text-sm">
             {lang === 'he' ? 'מחולל דפוסי קיפול ספרים' : 'Book Folding Pattern Generator'}
           </p>
+          <div className="flex items-center justify-center gap-3 mt-3">
+            {SOCIAL_LINKS.map(link => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={link.label}
+                className={`p-2 rounded-full hover:bg-muted transition-colors ${link.color}`}
+              >
+                <link.icon className="h-5 w-5" />
+              </a>
+            ))}
+          </div>
         </div>
 
         <Card className="shadow-lg border-primary/10">
