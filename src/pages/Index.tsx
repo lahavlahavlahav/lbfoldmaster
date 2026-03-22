@@ -48,7 +48,6 @@ const TECHNIQUES: { value: FoldTechnique; labelKey: string; icon: string }[] = [
 ];
 
 const Index: React.FC = () => {
-  const { t, lang } = useLanguage();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('lilou_auth') === 'true';
   });
@@ -56,6 +55,12 @@ const Index: React.FC = () => {
   if (!isAuthenticated) {
     return <AccessGate onAuthenticated={() => setIsAuthenticated(true)} />;
   }
+
+  return <PatternGenerator />;
+};
+
+const PatternGenerator: React.FC = () => {
+  const { t, lang } = useLanguage();
 
   // Book settings
   const [bookHeight, setBookHeight] = useState(21);
