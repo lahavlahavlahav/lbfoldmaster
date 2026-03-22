@@ -22,7 +22,7 @@ import {
 import { exportPatternToPdf, exportPatternToCsv } from '@/lib/pdf-export';
 import {
   BookOpen, Type, Image, Scissors, Download, FileSpreadsheet, Wand2, Eye,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MapPin,
 } from 'lucide-react';
 
 const FONTS = [
