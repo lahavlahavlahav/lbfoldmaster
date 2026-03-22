@@ -322,16 +322,20 @@ function generateEmbossed(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
       // Alternate between fold-in and fold-out for embossed 3D effect
       const foldType: 'fold-in' | 'fold-out' = (x % 2 === 0) ? 'fold-in' : 'fold-out';
+      const marks: Mark[] = [];
+      segments.forEach(seg => {
+        marks.push(
+          { positionCm: pixelToCm(seg.top, canvas.height, book), type: foldType },
+          { positionCm: pixelToCm(seg.bottom, canvas.height, book), type: foldType },
+        );
+      });
       pages.push({
         pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: foldType },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: foldType },
-        ],
+        marks,
         action: foldType === 'fold-in' ? 'fold-in' : 'fold-out',
       });
     }
