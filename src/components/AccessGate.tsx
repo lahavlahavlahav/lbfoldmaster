@@ -59,6 +59,20 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticated }) => {
           <p className="text-muted-foreground text-sm">
             {lang === 'he' ? 'מחולל דפוסי קיפול ספרים' : 'Book Folding Pattern Generator'}
           </p>
+          <div className="flex items-center justify-center gap-3 mt-3">
+            {SOCIAL_LINKS.map(link => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={link.label}
+                className={`p-2 rounded-full hover:bg-muted transition-colors ${link.color}`}
+              >
+                <link.icon className="h-5 w-5" />
+              </a>
+            ))}
+          </div>
         </div>
 
         <Card className="shadow-lg border-primary/10">
