@@ -175,14 +175,18 @@ function generateMMF(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
+      const marks: Mark[] = [];
+      segments.forEach(seg => {
+        marks.push(
+          { positionCm: pixelToCm(seg.top, canvas.height, book), type: 'fold' },
+          { positionCm: pixelToCm(seg.bottom, canvas.height, book), type: 'fold' },
+        );
+      });
       pages.push({
         pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: 'fold' },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: 'fold' },
-        ],
+        marks,
         action: 'fold',
       });
     }
@@ -217,17 +221,28 @@ function generateInverted(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
-      // Inverted: fold the OUTSIDE areas, leave design area unfolded
-      pages.push({
-        pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: 'fold' },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: 'fold' },
-        ],
-        action: 'fold-inverted',
-      });
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
+      // Inverted: fold the OUTSIDE areas (gaps between segments + top/bottom margins)
+      const marks: Mark[] = [];
+      // Fold from top margin to first segment
+      marks.push(
+        { positionCm: book.topMarginCm, type: 'fold' },
+        { positionCm: pixelToCm(segments[0].top, canvas.height, book), type: 'fold' },
+      );
+      // Fold gaps between segments
+      for (let i = 0; i < segments.length - 1; i++) {
+        marks.push(
+          { positionCm: pixelToCm(segments[i].bottom, canvas.height, book), type: 'fold' },
+          { positionCm: pixelToCm(segments[i + 1].top, canvas.height, book), type: 'fold' },
+        );
+      }
+      // Fold from last segment to bottom margin
+      marks.push(
+        { positionCm: pixelToCm(segments[segments.length - 1].bottom, canvas.height, book), type: 'fold' },
+        { positionCm: book.heightCm - book.bottomMarginCm, type: 'fold' },
+      );
+      pages.push({ pageNumber: x + 1, marks, action: 'fold-inverted' });
     } else {
       // No design on this page — fold entire page
       pages.push({
@@ -248,12 +263,11 @@ function generateShadow(
   config: TechniqueConfig
 ): PagePattern[] {
   const shadowDepth = config.shadowDepth ?? 3;
-  const basePags = generateMMF(ctx, canvas, book);
+  const basePages = generateMMF(ctx, canvas, book);
 
-  // Add shadow offset: duplicate marks shifted by shadowDepth pages
   const shadowPages: PagePattern[] = [];
   const pageMap = new Map<number, PagePattern>();
-  basePags.forEach(p => pageMap.set(p.pageNumber, p));
+  basePages.forEach(p => pageMap.set(p.pageNumber, p));
 
   for (let x = 0; x < canvas.width; x++) {
     const pageNum = x + 1;
@@ -266,12 +280,10 @@ function generateShadow(
     }
     if (shadowSource) {
       shadowSource.marks.forEach(m => {
-        // Shadow is a shallower fold
         marks.push({ positionCm: m.positionCm, type: 'fold', depth: 'shallow' });
       });
     }
     if (marks.length > 0) {
-      // Sort marks by position
       marks.sort((a, b) => a.positionCm - b.positionCm);
       shadowPages.push({ pageNumber: pageNum, marks, action: 'fold-shadow' });
     }
@@ -307,16 +319,20 @@ function generateEmbossed(
   const pages: PagePattern[] = [];
   for (let x = 0; x < canvas.width; x++) {
     const brightness = getColumnPixels(ctx, x, canvas.height);
-    const edges = findEdges(brightness, 128);
-    if (edges) {
+    const segments = findAllSegments(brightness, 128);
+    if (segments.length > 0) {
       // Alternate between fold-in and fold-out for embossed 3D effect
       const foldType: 'fold-in' | 'fold-out' = (x % 2 === 0) ? 'fold-in' : 'fold-out';
+      const marks: Mark[] = [];
+      segments.forEach(seg => {
+        marks.push(
+          { positionCm: pixelToCm(seg.top, canvas.height, book), type: foldType },
+          { positionCm: pixelToCm(seg.bottom, canvas.height, book), type: foldType },
+        );
+      });
       pages.push({
         pageNumber: x + 1,
-        marks: [
-          { positionCm: pixelToCm(edges.top, canvas.height, book), type: foldType },
-          { positionCm: pixelToCm(edges.bottom, canvas.height, book), type: foldType },
-        ],
+        marks,
         action: foldType === 'fold-in' ? 'fold-in' : 'fold-out',
       });
     }
