@@ -49,6 +49,13 @@ const TECHNIQUES: { value: FoldTechnique; labelKey: string; icon: string }[] = [
 
 const Index: React.FC = () => {
   const { t, lang } = useLanguage();
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('lilou_auth') === 'true';
+  });
+
+  if (!isAuthenticated) {
+    return <AccessGate onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
 
   // Book settings
   const [bookHeight, setBookHeight] = useState(21);
